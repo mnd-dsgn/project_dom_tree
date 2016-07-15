@@ -25,7 +25,7 @@ class ScriptParser
     id = tag.match(/(id=('|"))(\w+?)(("|'))/).to_a[3]
     name = tag.match(/(name=('|"))(\w+?)(("|'))/).to_a[3]
     inside = # for tags that require, any content 
-    Tag.new(type, classes, id, name, nil, nil, [], 0)
+    Tag.new(type, classes, id, name, '', nil, [], 0)
   end
 
   def html_split
@@ -41,7 +41,8 @@ class ScriptParser
 # "<div>  div text before  <p>    p text  </p>  <div>    more div text  </div>  div text after</div>"
 
     current_tag = parse_tag(html_string)
-    
+    inside_opening_tag = true
+    inside_closing_tag = false
     html_string.each_char.with_index do |char, i|
       
       if char == "<" && current_tag.depth > 0
@@ -51,9 +52,16 @@ class ScriptParser
         child_tag.parent = current_tag
         current_tag = child_tag 
         current_tag.depth = current_tag.parent.depth + 1
-
+        inside_opening_tag = true
+      elsif inside_opening_tag && char == '>'
+        inside_opening_tag = false
       elsif char == "<" && html_string[i+1] = "/"
         current_tag = current_tag.parent
+        inside_closing_tag = true
+      elsif inside_closing_tag && char == '>'
+        inside_closing_tag = false
+      elsif inside_closing_tag == false && inside_opening_tag == false
+        current_tag.inside << char 
       end
 
     end
