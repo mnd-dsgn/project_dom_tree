@@ -1,3 +1,5 @@
+require 'pry'
+
 P_TAG = "<p class='foo bar' id='baz' name='fozzie'>"
 DIV_TAG = "<div id = 'bim'>"
 IMG_TAG = "<img src='http://www.example.com' title='funny things'>"
@@ -12,11 +14,12 @@ html_string = "<div>  div text before  <p>    p text  </p>  <div>    more div te
 
 
 class ScriptParser
-  attr_reader :root
+  attr_reader :root, :html
   def initialize(html_string)
     @html = html_string
     @root = Tag.new('page', nil, nil, nil, '', nil, [], 0)
     parse_script
+    # strip_insides
   end
 
   def parse_tag(tag)
@@ -47,7 +50,9 @@ class ScriptParser
     inside_closing_tag = false
     
     @html.each_char.with_index do |char, i|
-      if char == "<" 
+      puts current_tag.type
+      puts i
+      if char == "<" && @html[i+1] != '/'
         child_tag = parse_tag(@html[i..-1])
         current_tag.children << child_tag
 
@@ -59,25 +64,34 @@ class ScriptParser
       elsif inside_opening_tag && char == '>'
         inside_opening_tag = false
 
-
-      elsif char == "/" && @html[i-1] == '<'
-        p current_tag.type
-        p "hi"
-        current_tag = current_tag.parent
-        inside_closing_tag = true
-        p current_tag.type
-        
       elsif inside_closing_tag && char == '>'
         inside_closing_tag = false
-       
 
-      elsif inside_closing_tag == false && inside_opening_tag == false
+      elsif char == "/" && @html[i-1] == '<'
+        current_tag = current_tag.parent
+        inside_closing_tag = true
+        
+
+      elsif inside_closing_tag == false && inside_opening_tag == false && char != '>' && char != '<' 
         current_tag.inside << char 
       end
 
     end
     @root
   end
+
+  def strip_insides(child)
+
+    @root.children.each do |child|
+      return if child.children == []
+      child.inside.strip
+      strip_insides(child)
+    end
+  end
+
+  # alternatively: get a regex that captures anything surrounded by opening & closing angle brackets
+  # split, and get everything in between
+  # two arrays - tags in order, contents in order
 
 end
 
@@ -105,9 +119,10 @@ end
 #parent has child if new tag opens before parent closes
 #parent's inside is when parent is the only opened tag and there is text
 # 
-sp = ScriptParser.new(html_string).root
 
+sp = ScriptParser.new(html_string).root
+puts ScriptParser.new(html_string).html[36..45]
 sp.children.each do |child|
-  puts child
+  p child.children
 end
 
