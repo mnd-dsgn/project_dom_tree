@@ -5,7 +5,7 @@ DIV_TAG = "<div id = 'bim'>"
 IMG_TAG = "<img src='http://www.example.com' title='funny things'>"
 
 Tag = Struct.new(:type, :classes, :id, :name, :inside, :parent, :children, :depth)
-
+TagContent = Struct.new(:parent, :text)
 
 html_string = "<div>  div text before  <p>    p text  </p>  <div>    more div text  </div>  div text after</div>"
 
@@ -17,49 +17,48 @@ class ScriptParser
   attr_reader :root, :html
   def initialize(html_string)
     @html = html_string
-    @root = Tag.new('page', nil, nil, nil, '', nil, [], 0)
+    @root = Tag.new('document', nil, nil, nil, '', nil, [], 0)
+    # @html = chop_off_doctype(@html)
     parse_script
     # strip_insides
   end
 
   def parse_tag(tag)
-    # goal: capture any alphanumeric characters of any length between "<" " " 
     type = tag.match(/<\w+( |>)/).to_a[0][1..-2] if tag.match(/<\w+( |>)/).to_a[0]
     classes = tag.match(/(class=('|"))(.+?)(("|'))/).to_a[3]
     classes = classes.split(' ') if classes
     id = tag.match(/(id=('|"))(\w+?)(("|'))/).to_a[3]
     name = tag.match(/(name=('|"))(\w+?)(("|'))/).to_a[3]
-    inside = # for tags that require, any content 
+    # inside = # for tags that require, any content 
     Tag.new(type, classes, id, name, '', nil, [], 0)
   end
 
-  def parse_script
-    # begin
-    #loop through every character in html string
-    # if < , create a child tag, connect it to current tag, set current tag to child tag 
-    # fill the current tag tag object's data before >
-    # any text found here is added to "inside" data of current tag
-      # if </ set current tag to current tag's parent
-      # end until current tag. parent is nil
+  def parse_tag_content(parent, html) 
+    # capture everything until next "<"
+    tag_content = html.match(/(.+?)</)[1].strip # >(.+?)<  # ((\w+)(\s)*[^<>])+
+    TagContent.new(parent, tag_content)
+  end
 
+  def parse_script
 
 # "<div>  div text before  <p>    p text  </p>  <div>    more div text  </div>  div text after</div>"
   
     current_tag = @root
     inside_opening_tag = true
     inside_closing_tag = false
-    
+    in_content = false  
+
     @html.each_char.with_index do |char, i|
-      puts current_tag.type
-      puts i
       if char == "<" && @html[i+1] != '/'
         child_tag = parse_tag(@html[i..-1])
-        current_tag.children << child_tag
 
+        current_tag.children << child_tag
         child_tag.parent = current_tag
+        child_tag.depth = current_tag.depth + 1
+
         current_tag = child_tag 
-        current_tag.depth = current_tag.parent.depth + 1
         inside_opening_tag = true
+        in_content = false
 
       elsif inside_opening_tag && char == '>'
         inside_opening_tag = false
@@ -71,9 +70,22 @@ class ScriptParser
         current_tag = current_tag.parent
         inside_closing_tag = true
         
+        in_content = false
 
-      elsif inside_closing_tag == false && inside_opening_tag == false && char != '>' && char != '<' 
-        current_tag.inside << char 
+      elsif inside_closing_tag == false && 
+            inside_opening_tag == false && 
+            char != '>' && char != '<' && 
+            in_content == false &&
+            char =~ /\S/
+
+         # problem: this will also capture any content that's just whitespace
+         # => solution: change conditional to only be met once non-whitespace is found   
+        # DONE: change conditional to only call this once text appears outside of tags
+        # DONE: call a parse_content method 
+        # that creates a TagContent object with #text of all @html that follows until a "<" char  
+        content = parse_tag_content(current_tag, @html[i..-1])
+        current_tag.children << content
+        in_content = true 
       end
 
     end
@@ -89,9 +101,14 @@ class ScriptParser
     end
   end
 
-  # alternatively: get a regex that captures anything surrounded by opening & closing angle brackets
-  # split, and get everything in between
-  # two arrays - tags in order, contents in order
+  def chop_off_doctype(html)
+    first_tag = /<([^<>]+)>/.match(html)[0]
+    if index = first_tag.downcase =~ /<\!doctype.+>/
+      html = html[index..-1]
+    end
+    html
+  end
+
 
 end
 
@@ -111,18 +128,10 @@ end
 #   div text after # if not in a child tag, any text is added to :inside
 # </div>
 
-# as we iterate, keep track of:
-#tag we are inside of
-#parent tag
 
-
-#parent has child if new tag opens before parent closes
-#parent's inside is when parent is the only opened tag and there is text
-# 
-
-sp = ScriptParser.new(html_string).root
-puts ScriptParser.new(html_string).html[36..45]
-sp.children.each do |child|
-  p child.children
-end
+# sp = ScriptParser.new(html_string).root
+# puts ScriptParser.new(html_string).html[36..45]
+# sp.children.each do |child|
+#   p child.children
+# end
 
