@@ -16,7 +16,7 @@ class ScriptParser
   attr_reader :root, :html
   def initialize(html_string)
     @html = html_string
-    @root = Tag.new('document', nil, nil, nil, '', nil, [], 0)
+    @root = Tag.new('document', [], nil, nil, '', nil, [], 0)
     chop_off_doctype(@html)
     parse_script
     # strip_insides
@@ -26,6 +26,7 @@ class ScriptParser
     type = tag.match(/<\w+( |>)/).to_a[0][1..-2] if tag.match(/<\w+( |>)/).to_a[0]
     classes = tag.match(/(class=('|"))(.+?)(("|'))/).to_a[3]
     classes = classes.split(' ') if classes
+    classes ||= []
     id = tag.match(/(id=('|"))(.+?)(("|'))/).to_a[3]
     name = tag.match(/(name=('|"))(\w+?)(("|'))/).to_a[3]
     # inside = # for tags that require, any content 

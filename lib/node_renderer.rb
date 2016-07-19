@@ -1,4 +1,3 @@
-require 'pry'
 require_relative './parse_tag'
 
 class NodeRenderer
