@@ -7,7 +7,6 @@ IMG_TAG = "<img src='http://www.example.com' title='funny things'>"
 Tag = Struct.new(:type, :classes, :id, :name, :inside, :parent, :children, :depth)
 TagContent = Struct.new(:parent, :text)
 
-html_string = "<div>  div text before  <p>    p text  </p>  <div>    more div text  </div>  div text after</div>"
 
 
 # <(div)>(.+)<\/\1>
@@ -18,7 +17,7 @@ class ScriptParser
   def initialize(html_string)
     @html = html_string
     @root = Tag.new('document', nil, nil, nil, '', nil, [], 0)
-    # @html = chop_off_doctype(@html)
+    chop_off_doctype(@html)
     parse_script
     # strip_insides
   end
@@ -27,7 +26,7 @@ class ScriptParser
     type = tag.match(/<\w+( |>)/).to_a[0][1..-2] if tag.match(/<\w+( |>)/).to_a[0]
     classes = tag.match(/(class=('|"))(.+?)(("|'))/).to_a[3]
     classes = classes.split(' ') if classes
-    id = tag.match(/(id=('|"))(\w+?)(("|'))/).to_a[3]
+    id = tag.match(/(id=('|"))(.+?)(("|'))/).to_a[3]
     name = tag.match(/(name=('|"))(\w+?)(("|'))/).to_a[3]
     # inside = # for tags that require, any content 
     Tag.new(type, classes, id, name, '', nil, [], 0)
@@ -42,6 +41,8 @@ class ScriptParser
   def parse_script
 
 # "<div>  div text before  <p>    p text  </p>  <div>    more div text  </div>  div text after</div>"
+
+
   
     current_tag = @root
     inside_opening_tag = true
@@ -103,8 +104,8 @@ class ScriptParser
 
   def chop_off_doctype(html)
     first_tag = /<([^<>]+)>/.match(html)[0]
-    if index = first_tag.downcase =~ /<\!doctype.+>/
-      html = html[index..-1]
+    if first_tag.downcase =~ /<\!doctype.+>/
+      @html = html[first_tag.length..-1]
     end
     html
   end
@@ -129,9 +130,5 @@ end
 # </div>
 
 
-# sp = ScriptParser.new(html_string).root
-# puts ScriptParser.new(html_string).html[36..45]
-# sp.children.each do |child|
-#   p child.children
-# end
 
+# "<div class='main-content' id='main-content'>  div text before  <p>    p text  </p>  <div>    more div text  </div>  div text after</div>"
