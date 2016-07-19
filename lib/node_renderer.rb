@@ -1,10 +1,3 @@
-# This function outputs simple statistics for a particular node, including:
-
-#     How many total nodes there are in the sub-tree below this node
-#     A count of each node type in the sub-tree below this node
-#     All of the node's data attributes
-
-# ...output...
 require 'pry'
 require_relative './parse_tag'
 
@@ -21,12 +14,16 @@ class NodeRenderer
   def render(node = nil)
     node ||= @root.children[0] 
     node_types(node)
+    display_attributes
+    node_types
     count_descendants(node)
-    #     A count of each node type in the sub-tree below this node
-      # create a hash
-      # trawl through nodes
-      # for each node that's a tag, add 1 to its value in the hash
-      # find a way to print the value
+  end
+
+  def display_attributes(node = nil)
+    node ||= @root.children[0]
+    puts "Node type: #{node.type}"
+    puts "Node classes: #{node.classes}"
+    puts "Node ID: #{node.id}"
   end
 
   def count_descendants(node)
@@ -43,7 +40,8 @@ class NodeRenderer
     counter
   end
 
-  def node_types(node)
+  def node_types(node = nil)
+    node ||= @root.children[0]
     hash = {}
     stack = [node]
     while node = stack.pop
